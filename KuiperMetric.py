@@ -2,13 +2,33 @@ import rubin_sim.maf as maf
 import rubin_sim.utils as rsUtils
 import numpy as np
 
+__all__ = ["KuiperVS"]
+
 class KuiperVS(maf.BaseMetric):
-    def __init__(self, mjdCol='observationStartMJD', units='', period=5, **kwargs):
-        """surveyLength = time span of survey (years) """
+    """Measure the uniformity of distribution of observations across phased light curve using Kuiper test. 
+    0 means perfectly uniform distribution, 1 means delta-function. For small number of observations (<~30, in reality depends
+    on the shape of the light curve) this metric becomes unreliable.
+     
+    Parameters
+    ----------
+    mjdCol : string
+        name of the column containing the starting date of observation
+    period : float
+        period for which we want to check the uniformity of the phase coverage
+    
+    Returns
+    -------
+    Kuiper value in range [0;1] where 0 means perfectly uniform distribution and 1 means delta-function
+    """
+    
+    def __init__(self, mjdCol='observationStartMJD', period=1., **kwargs):
+        
+       
+        
         """period = assumed period of variability which will be used for calculating phase coverage by\
         observations. Measured in days"""
         self.mjdCol = mjdCol
-        super(KuiperVS, self).__init__(col=self.mjdCol, units=units, **kwargs)
+        super(KuiperVS, self).__init__(col=self.mjdCol, units='Kuiper value, 0-1', **kwargs)
         self.period=period
 
     def run(self, dataSlice, slicePoint=None):
