@@ -13,30 +13,50 @@ class KuiperVS(maf.BaseMetric):
     ----------
     mjdCol : string
         name of the column containing the starting date of observation
-    period : float
+    period : float 
         period for which we want to check the uniformity of the phase coverage
+    filters : list-like
+        list of filters used for calculating Kuiper value
+    amplitudes : float or list-like
+        list of amplitudes of the stellar variablility (mags) of the same dimensionality as 'filters'
+    starMags : float 
+        list of mean magnitudes of the stars (mags) of the same dimensionality as 'filters'
     
     Returns
     -------
     Kuiper value in range [0;1] where 0 means perfectly uniform distribution and 1 means delta-function
     """
     
-    def __init__(self, mjdCol='observationStartMJD', period=1., **kwargs):
+    def __init__(self, mjdCol='observationStartMJD', period=1.,filters=['u','g','r','i','z','y'],
+                 amplitudes=[0.5]*6,starMags=[12]*6,**kwargs):
         
-       
-        
-        """period = assumed period of variability which will be used for calculating phase coverage by\
-        observations. Measured in days"""
         self.mjdCol = mjdCol
-        super(KuiperVS, self).__init__(col=self.mjdCol, units='Kuiper value, 0-1', **kwargs)
+        self.filterCol='filter'
+        self.fiveSigmaDepthCol='fiveSigmaDepth'
+        self.filters=list(filters)
+        self.amplitudes=list(amplitudes)
+        self.starMags=list(starMags)
+        super(KuiperVS, self).__init__(col=[self.mjdCol,self.filterCol,self.fiveSigmaDepthCol], 
+                                       units='Kuiper value, 0-1', **kwargs)
         self.period=period
 
     def run(self, dataSlice, slicePoint=None):
+        if len(self.filters)!=len(self.amplitudes) or len(self.filters)!=len(self.starMags):
+            raise RuntimeError("Filters, amplitudes and starMags should be of the same length")
+        
+        # Selecting only those observations that fall within magnitude limits 
+        ind = [] 
+        for filt,mag,amp in zip(self.filters,self.starMags,self.amplitudes):
+            ind.extend(np.where((dataSlice[self.filterCol]==filt) & (dataSlice[self.fiveSigmaDepthCol]>(mag+amp)))[0])
+        dSlice = dataSlice[np.array(ind)]
+        # How to implement limiting for brightness clipping, i.e. for situations when 
+        # the source is too bright to be observed?
+        
         # If only one observation, it's delta function and DKuiper=1
-        if dataSlice[self.mjdCol].size == 1:
+        if dSlice[self.mjdCol].size == 1:
             return 1
         # Create phased cadence
-        phased=np.sort((dataSlice[self.mjdCol]%self.period)/self.period)
+        phased=np.sort((dSlice[self.mjdCol]%self.period)/self.period)
         
         # Uniform cadence of the same size
         uniform = (np.arange(phased.size)+1)/phased.size
