@@ -36,8 +36,9 @@ class KuiperVS(maf.BaseMetric):
         self.filters=list(filters)
         self.amplitudes=list(amplitudes)
         self.starMags=list(starMags)
+        self.badval=-666
         super(KuiperVS, self).__init__(col=[self.mjdCol,self.filterCol,self.fiveSigmaDepthCol], 
-                                       units='Kuiper value, 0-1', **kwargs)
+                                       units='Kuiper value, 0-1',badval=self.badval, **kwargs)
         self.period=period
 
     def run(self, dataSlice, slicePoint=None):
@@ -48,6 +49,8 @@ class KuiperVS(maf.BaseMetric):
         ind = [] 
         for filt,mag,amp in zip(self.filters,self.starMags,self.amplitudes):
             ind.extend(np.where((dataSlice[self.filterCol]==filt) & (dataSlice[self.fiveSigmaDepthCol]>(mag+amp)))[0])
+        if ind == []:
+            return self.badval
         dSlice = dataSlice[np.array(ind)]
         # How to implement limiting for brightness clipping, i.e. for situations when 
         # the source is too bright to be observed?
@@ -55,6 +58,7 @@ class KuiperVS(maf.BaseMetric):
         # If only one observation, it's delta function and DKuiper=1
         if dSlice[self.mjdCol].size == 1:
             return 1
+        
         # Create phased cadence
         phased=np.sort((dSlice[self.mjdCol]%self.period)/self.period)
         
