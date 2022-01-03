@@ -28,7 +28,7 @@ class KuiperVS(maf.BaseMetric):
     """
     
     def __init__(self, mjdCol='observationStartMJD', period=1.,filters=['u','g','r','i','z','y'],
-                 amplitudes=[0.5]*6,starMags=[12]*6,**kwargs):
+                 amplitudes=[0.5]*6,starMags=[23.5]*6,**kwargs):
         
         self.mjdCol = mjdCol
         self.filterCol='filter'
